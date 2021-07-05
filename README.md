@@ -1,4 +1,4 @@
-Bumper Robot
+# Bumper Robot
 
 A WIP bot for the Ys video game.
 The application is Windows specific and has some configuration dependent constants.
@@ -6,7 +6,7 @@ Designed only to handle the second last boss for ease of detection as
 - the background on bosses is static
 - this boss' movement and attack patterns are independent of input
 
-TODOs:
+## TODOs:
 - detect enemy attacks
 - avoid enemy attacks
 - predict and filter detected objects' state
