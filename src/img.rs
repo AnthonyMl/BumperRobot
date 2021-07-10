@@ -63,6 +63,30 @@ pub fn threshold_blue(img: &[u8], lower: u8, upper: u8) -> Vec<u8> {
     out
 }
 
+// RGB -> L8
+pub fn threshold(img: &[u8], thresholds: &[(u8, u8); 3]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(img.len() / 3);
+
+    for p in img.chunks_exact(3) {
+        match p {
+            [r, g, b] => {
+                out.push(
+                    if  *r >= thresholds[0].0 && *r <= thresholds[0].1 &&
+                        *g >= thresholds[1].0 && *g <= thresholds[1].1 &&
+                        *b >= thresholds[2].0 && *b <= thresholds[2].1
+                    {
+                        u8::MAX
+                    } else {
+                        u8::MIN
+                    }
+                )
+            },
+            _ => unreachable!("Invalid RGB image")
+        }
+    }
+    out
+}
+
 // L8 -> L8
 pub fn median3x3(img: &[u8], width: usize, height: usize) -> Vec<u8> {
     let mut out = vec![0; img.len()];

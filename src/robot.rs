@@ -34,6 +34,9 @@ impl Robot {
         let h_other  = self.head_tracker.bound.clone();
         let h_target = mirror_horizontal(&h_other, width); // target the non-blue head
 
+        let fireball_rects = fireballs(&img, width, height);
+        let crystal_rects = crystals(&img, width, height);
+
         // response
 
         let (x, y) = centroid(&active_pixel_to_screen(&h_target, active_area));
@@ -42,8 +45,50 @@ impl Robot {
         // Causes loss of focus if detection fails on first frame
         mouse_move(x, y);
 
-        return vec![h_target, h_other];
+        let mut r = vec![h_target, h_other];
+
+        r.extend(fireball_rects);
+        r.extend(crystal_rects);
+
+        r
     }
+}
+
+fn crystals(img: &[u8], width: usize, height: usize) -> Vec<Rectangle<usize>> {
+    const RGB_THRESHOLDS: [(u8, u8); 3] = [(10,255), (30,204), (84,255)];
+
+    projectiles(img, width, height, &RGB_THRESHOLDS)
+}
+
+fn fireballs(img: &[u8], width: usize, height: usize) -> Vec<Rectangle<usize>> {
+    const RGB_THRESHOLDS: [(u8, u8); 3] = [(160,255), (14,250), (1,255)];
+
+    projectiles(img, width, height, &RGB_THRESHOLDS)
+}
+
+fn projectiles(img: &[u8], width: usize, height: usize, rgb_thresholds: &[(u8, u8); 3]) -> Vec<Rectangle<usize>> {
+    const MIN_AREA: usize = 28;
+    const MAX_AREA: usize = 62;
+    const ROUNDNESS: f32 = 0.25;
+
+    let img = img::threshold(img, rgb_thresholds);
+
+    let mut img = img::median3x3(&img, width, height);
+
+    connected_components(&mut img, width, height)
+        .into_iter()
+        .filter(|c|{
+            let width = c.right - c.left;
+            let height = c.bottom - c.top;
+            let ratio = width as f32 / height as f32;
+
+            c.area > MIN_AREA &&
+            c.area < MAX_AREA &&
+            ratio > (1.0 - ROUNDNESS) &&
+            ratio < (1.0 + ROUNDNESS)
+        })
+        .map(|c| c.bounding_box())
+        .collect()
 }
 
 fn centroid(r: &Rectangle<usize>) -> (usize, usize) {
@@ -63,9 +108,9 @@ struct HeadTracker {
 impl HeadTracker {
     fn update(&mut self, img: &[u8], width: usize, height: usize) {
         const BLUE_THRESHOLD_LOWER: u8 = 57;
-        const BLUE_THRESHOLD_HIGHER: u8 = 203;
+        const BLUE_THRESHOLD_UPPER: u8 = 203;
 
-        let img = img::threshold_blue(img, BLUE_THRESHOLD_LOWER, BLUE_THRESHOLD_HIGHER);
+        let img = img::threshold_blue(img, BLUE_THRESHOLD_LOWER, BLUE_THRESHOLD_UPPER);
 
         let mut img = img::median3x3(&img, width, height);
 
@@ -82,4 +127,3 @@ impl HeadTracker {
         }
     }
 }
-
