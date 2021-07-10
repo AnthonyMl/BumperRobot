@@ -1,5 +1,7 @@
 # Bumper Robot
 
+![example](/docs/overlay_example.gif)
+
 A WIP bot for the Ys video game.
 The application is Windows specific and has some configuration dependent constants.
 Designed only to handle the second last boss for ease of detection as
