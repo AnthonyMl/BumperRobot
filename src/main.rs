@@ -19,6 +19,7 @@ pub mod capture_windows;
 pub mod rectangle_renderer;
 pub mod rectangle_data;
 pub mod background;
+pub mod kalman;
 
 
 enum Execution {

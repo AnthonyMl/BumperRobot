@@ -1,4 +1,4 @@
-use crate::{background, capture::active_pixel_to_screen, capture_windows::{mouse_move, mouse_release}, img::{self, IMAGE_DOWNSCALE_FACTOR}, img::Rectangle, img_connected_components::{connected_components}};
+use crate::{background, capture::active_pixel_to_screen, capture_windows::{mouse_move, mouse_release}, img::{self, IMAGE_DOWNSCALE_FACTOR}, img::Rectangle, img_connected_components::{connected_components}, kalman::KalmanFilter};
 
 
 pub struct Robot {
@@ -100,13 +100,15 @@ fn mirror_horizontal(r: &Rectangle<usize>, width: usize) -> Rectangle<usize> {
     Rectangle { left: width - r.left - r.width, .. *r }
 }
 
-// BlueHeadTracker?
 struct HeadTracker {
     pub bound: Rectangle<usize>,
+    pub filter: KalmanFilter,
 }
 
 impl HeadTracker {
     fn update(&mut self, img: &[u8], width: usize, height: usize) {
+        const BBOX_WIDTH: usize = 17;
+        const BBOX_HEIGHT: usize = 25;
         const BLUE_THRESHOLD_LOWER: u8 = 57;
         const BLUE_THRESHOLD_UPPER: u8 = 203;
 
@@ -118,11 +120,27 @@ impl HeadTracker {
             .into_iter()
             .max_by(|a, b|{ a.area.cmp(&b.area) })
             .map(|c| self.bound = c.bounding_box());
+
+        self.filter.predict();
+
+        let (x, y) = centroid(&self.bound);
+
+        self.filter.update(&(x as f32, y as f32));
+
+        let p = self.filter.position();
+
+        self.bound = Rectangle {
+            left: p.0 as usize - BBOX_WIDTH / 2,
+            top: p.1 as usize - BBOX_HEIGHT / 2,
+            width: BBOX_WIDTH,
+            height: BBOX_HEIGHT,
+        };
     }
 
     // default instead ?
     fn new() -> Self {
         HeadTracker {
+            filter: KalmanFilter::default(),
             bound: Rectangle { left: 0, top: 0, width: 0, height: 0 },
         }
     }
